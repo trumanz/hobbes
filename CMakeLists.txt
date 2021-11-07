@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.4.1)
 project(hobbes)
 
+set( CMAKE_VERBOSE_MAKEFILE on )
+SET(CMAKE_BUILD_TYPE Debug)
+
+
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 find_package(ZLIB REQUIRED)
@@ -51,6 +55,9 @@ else()
                   OUTPUT_STRIP_TRAILING_WHITESPACE)
 endif()
 
+llvm_map_components_to_libnames(llvm_libraries nativecodegen AllTargetsAsmParsers)
+
+
 message(STATUS "llvm libs: ${llvm_libs}")
 message(STATUS "llvm ldflags: ${llvm_ldflags}")
 message(STATUS "llvm syslibs: ${sys_libs}")
@@ -95,9 +102,9 @@ if(USE_ASAN_AND_UBSAN)
 endif()
 
 add_library(hobbes STATIC ${lib_files})
-target_link_libraries(hobbes PUBLIC ${llvm_ldflags} ${llvm_libs} ${ZLIB_LIBRARIES} ${CURSES_LIBRARIES} ${sys_libs})
+target_link_libraries(hobbes PUBLIC ${llvm_ldflags} ${llvm_libs} ${llvm_libraries} ${ZLIB_LIBRARIES} ${CURSES_LIBRARIES} ${sys_libs})
 add_library(hobbes-pic STATIC ${lib_files})
-target_link_libraries(hobbes-pic PUBLIC ${llvm_ldflags} ${llvm_libs} ${ZLIB_LIBRARIES} ${CURSES_LIBRARIES} ${sys_libs})
+target_link_libraries(hobbes-pic PUBLIC ${llvm_ldflags} ${llvm_libs} ${llvm_libraries} ${ZLIB_LIBRARIES} ${CURSES_LIBRARIES} ${sys_libs})
 set_property(TARGET hobbes-pic PROPERTY POSITION_INDEPENDENT_CODE TRUE)
 
 add_executable(hi ${hi_files})
@@ -108,7 +115,7 @@ target_link_libraries(hog PRIVATE hobbes)
 enable_testing()
 add_executable(mock-proc test/mocks/proc.C)
 add_executable(hobbes-test ${test_files})
-target_link_libraries(hobbes-test PRIVATE hobbes)
+target_link_libraries(hobbes-test PRIVATE hobbes ${llvm_libraries} )
 add_test(hobbes-test hobbes-test)
 find_package(PythonInterp 2.7 REQUIRED)
 set_property(TARGET hobbes-test PROPERTY COMPILE_FLAGS "-DPYTHON_EXECUTABLE=\"${PYTHON_EXECUTABLE}\" -DSCRIPT_DIR=\"${CMAKE_SOURCE_DIR}/scripts/\"")
